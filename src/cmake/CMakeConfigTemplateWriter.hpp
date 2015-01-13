@@ -10,14 +10,14 @@ namespace proj2cmake
 namespace cmake
 {
 
-class SourcesListWriter
+class ConfigTemplateWriter
 {
 private:
-   vcx::ProjectPair mProject;
+   vcx::Solution mSolution;
    
 public:
-   SourcesListWriter(vcx::ProjectPair project)
-    : mProject(std::move(project))
+   ConfigTemplateWriter(vcx::Solution solution)
+    : mSolution(std::move(solution))
    {}
 
    void operator()(std::ostream& os);

@@ -1,6 +1,7 @@
 #include "vcx/VCXParser.hpp"
 
-#include "cmake/CMakeSrcWriter.hpp"
+#include "cmake/CMakeListsWriter.hpp"
+#include "cmake/CMakeConfigTemplateWriter.hpp"
 #include "cmake/CMakeMsc.hpp"
 #include "cmake/CMakeSubDirRegistering.hpp"
 
@@ -8,13 +9,11 @@
 
 using namespace proj2cmake;
 
-std::string ProcName;
-
-void writeGeneratedNote(std::ostream& os)
+void writeGeneratedNote(std::ostream& os, const char* procName)
 {
    os << "#" << std::endl;
-   os << "# This file was genared by " << ProcName << " and will be overwritten on it's next run!" << std::endl;
-   os << "# Please put all configurations in the *_conf.cmake files." << std::endl;
+   os << "# This file was genared by " << procName << " and will be overwritten on it's next run!" << std::endl;
+   os << "# Please put all configurations in the cmake_conf/*.cmake files." << std::endl;
    os << "#" << std::endl;
    os << std::endl;
 }
@@ -24,11 +23,11 @@ int main(int argc, char** argv)
 {
    namespace fs = boost::filesystem;
    
-   ProcName = argv[0];
+   auto procName = argv[0];
 
    if(argc < 2)
    {
-      std::cerr << "Usage: " << ProcName << " <SolutionFile>" << std::endl;
+      std::cerr << "Usage: " << procName << " <SolutionFile>" << std::endl;
       return 1;
    }
    
@@ -55,10 +54,10 @@ int main(int argc, char** argv)
       
       auto cmakeSrcFile = solution.basePath / pInfo.projectFile;
       cmakeSrcFile.replace_extension(".cmake");
-      cmake::SourcesListWriter writer(p);
+      cmake::ListsWriter writer(p);
 
       std::ofstream os(cmakeSrcFile.native());
-      writeGeneratedNote(os);
+      writeGeneratedNote(os, procName);
       writer(os);
       
       dirToProj[cmakeSrcFile.parent_path()].push_back(&p);
@@ -68,7 +67,7 @@ int main(int argc, char** argv)
    {
       auto f = p.first / "CMakeLists.txt";
       std::ofstream os(f.native());
-      writeGeneratedNote(os);
+      writeGeneratedNote(os, procName);
 
       os << "cmake_minimum_required(VERSION 2.8)" << std::endl;
       os << std::endl;
@@ -77,10 +76,24 @@ int main(int argc, char** argv)
       {
          os << "PROJECT(" << solution.name << ")" << std::endl;
          os << std::endl;
-         os << "IF(EXISTS \"" << solution.name << "_conf.cmake\")" << std::endl;
-         os << "   INCLUDE(\"" << solution.name << "_conf.cmake\")" << std::endl;
-         os << "ENDIF()" << std::endl;
+         
+         fs::path confFile = "cmake_conf";
+         confFile /= (solution.name + ".cmake");
+         
+         //os << "IF(EXISTS \"${" << solution.name << "_SOURCE_DIR}/cmake_conf/" << solution.name << ".cmake\")" << std::endl;
+         os << "INCLUDE(\"${" << solution.name << "_SOURCE_DIR}/" + confFile.string() + "\")" << std::endl;
+         //os << "ENDIF()" << std::endl;
          os << std::endl;
+         
+         auto fullConfPath = solution.basePath / confFile;
+         if(fs::exists(fullConfPath) == false)
+         {
+            fs::create_directories(fullConfPath.parent_path());
+            cmake::ConfigTemplateWriter writer(solution);
+            std::ofstream os(fullConfPath.native());
+            writer(os);
+         }
+         
          cmake::CMakeSubDirRegistering subDirRegister(os);
          for(auto&& subDir : dirToProj)
          {
@@ -106,6 +119,12 @@ int main(int argc, char** argv)
          os << std::endl;
          os << cmake::cmakeStartType(pInfo.name, project.type) << std::endl;
          os << "            ${" << cmake::tokenize(pInfo.name) << "_SRC})" << std::endl;
+         os << std::endl;
+         os << "TARGET_LINK_LIBRARIES(" << cmake::tokenize(pInfo.name) << std::endl;
+         os << "            ${" << cmake::tokenize(pInfo.name) << "_DEPS}" << std::endl;
+         os << "            ${" << cmake::tokenize(pInfo.name) << "_ADDITIONAL_DEPS}" << std::endl;
+         os << "            ${SOLUTION_" << cmake::cmakeTypeCaption(project.type) << "_DEPS}" << std::endl;
+         os << "            ${SOLUTION_GENERAL_DEPS})" << std::endl;
          os << std::endl;
       }
    }

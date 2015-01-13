@@ -2,6 +2,21 @@
 
 using namespace proj2cmake;
 
+const char* cmake::cmakeTypeCaption(vcx::ConfigurationType type)
+{
+   switch(type)
+   {
+   case vcx::ConfigurationType::Application:
+      return "APP";
+   case vcx::ConfigurationType::StaticLibrary:
+      return "STATIC_LIB";
+   case vcx::ConfigurationType::DynamicLibrary:
+      return "SHARED_LIB";
+   }
+   
+   throw std::logic_error("Unhandled config type! (cmake::cmakeTypeCaption)");
+}
+
 std::string cmake::cmakeStartType(const std::string& name, vcx::ConfigurationType type)
 {
    std::string res;
