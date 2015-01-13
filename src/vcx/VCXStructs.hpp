@@ -55,6 +55,7 @@ using ProjectPair = std::pair<const vcx::ProjectInfo, vcx::Project>;
 struct Solution
 {
   fs::path basePath;
+  std::string name;
   std::map<ProjectInfo, Project> projects;
 };
 

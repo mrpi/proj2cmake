@@ -4,12 +4,6 @@ using namespace proj2cmake::vcx;
 
 namespace
 {
-#ifdef _WIN32
-inline std::string&& pathToNative(std::string&& in)
-{
-   return std::move(in);
-}
-#else
 inline std::string&& pathToNative(std::string&& in)
 {
    for(auto& c : in)
@@ -17,7 +11,6 @@ inline std::string&& pathToNative(std::string&& in)
          c = '/';
    return std::move(in);
 }
-#endif
 }
 
 fs::path SolutionParser::basePath() const
@@ -33,6 +26,7 @@ Solution SolutionParser::operator()()
 {
    Solution res;
    res.basePath = basePath();
+   res.name = mSlnFile.stem().string();
    auto infos = parseSolution(mSlnFile);
    for(auto&& projInfo : infos)
       res.projects[projInfo] = parseProject(projInfo);

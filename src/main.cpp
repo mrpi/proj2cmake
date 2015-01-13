@@ -75,6 +75,12 @@ int main(int argc, char** argv)
       
       if(p.first == solution.basePath)
       {
+         os << "PROJECT(" << solution.name << ")" << std::endl;
+         os << std::endl;
+         os << "IF(EXISTS \"" << solution.name << "_conf.cmake\")" << std::endl;
+         os << "   INCLUDE(\"" << solution.name << "_conf.cmake\")" << std::endl;
+         os << "ENDIF()" << std::endl;
+         os << std::endl;
          cmake::CMakeSubDirRegistering subDirRegister(os);
          for(auto&& subDir : dirToProj)
          {
