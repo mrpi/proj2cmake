@@ -11,6 +11,19 @@ inline std::string&& pathToNative(std::string&& in)
          c = '/';
    return std::move(in);
 }
+
+inline void toUpper(char& c)
+{
+   if(c >= 'a' && c <= 'z')
+      c += 'A' - 'a';
+}
+
+inline std::string&& toUpper(std::string&& in)
+{
+   for(auto& c : in)
+      toUpper(c);
+   return std::move(in);
+}
 }
 
 fs::path SolutionParser::basePath() const
@@ -25,11 +38,26 @@ SolutionParser::SolutionParser(fs::path slnFile)
 Solution SolutionParser::operator()()
 {
    Solution res;
+   
    res.basePath = basePath();
    res.name = mSlnFile.stem().string();
+
    auto infos = parseSolution(mSlnFile);
    for(auto&& projInfo : infos)
       res.projects[projInfo] = parseProject(projInfo);
+ 
+   for(auto&& proj : res.projects)
+   {
+      for(auto&& refProj : proj.second.referencedProjects)
+      {
+         auto itr = res.projects.find(refProj);
+         if(itr == res.projects.end())
+            std::cerr << "Warning: Project " << refProj.guid << " is referenced but can not be found" << std::endl;
+         else
+            refProj.name = itr->first.name;
+      }
+   }
+   
    return res;
 }
 
@@ -79,8 +107,7 @@ Project SolutionParser::parseProject(const ProjectInfo& projInfo)
             ProjectInfo pInfo;
             auto f = ip.second.get<std::string>("<xmlattr>.Include");
             pInfo.projectFile = pathToNative(std::move(f));
-            pInfo.guid = ip.second.get<std::string>("Project");
-            pInfo.name = pInfo.projectFile.stem().string();
+            pInfo.guid = toUpper(ip.second.get<std::string>("Project"));
             res.referencedProjects.push_back(pInfo);
          }
       }
@@ -136,7 +163,7 @@ std::vector<ProjectInfo> SolutionParser::parseSolution(std::istream& is)
 
          val = val.substr(end+1);
          val = val.substr(val.find('\"')+1);
-         sol.guid = val.substr(0, val.find('\"'));
+         sol.guid = toUpper(val.substr(0, val.find('\"')));
          
          res.push_back(sol);
       }
