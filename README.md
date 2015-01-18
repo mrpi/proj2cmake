@@ -1,5 +1,5 @@
 # proj2cmake
-Convert an entire Visual Studio solutions and all contained projects to CMake.
+Convert an entire Visual Studio solution and all contained projects to CMake.
 
 The output is split into multiple files:
  - CMake files that contain the lists of sources and dependencies between the projects in the solution
