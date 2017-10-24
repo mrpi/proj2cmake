@@ -1,15 +1,16 @@
 #include "VCXParser.hpp"
+#include <iostream>
 
 using namespace proj2cmake::vcx;
 
 namespace
 {
-inline std::string&& pathToNative(std::string&& in)
+inline std::string pathToNative(std::string&& in)
 {
    for(auto& c : in)
       if(c == '\\')
          c = '/';
-   return std::move(in);
+   return in;
 }
 
 inline void toUpper(char& c)
@@ -18,11 +19,11 @@ inline void toUpper(char& c)
       c += 'A' - 'a';
 }
 
-inline std::string&& toUpper(std::string&& in)
+inline std::string toUpper(std::string&& in)
 {
    for(auto& c : in)
       toUpper(c);
-   return std::move(in);
+   return in;
 }
 }
 
