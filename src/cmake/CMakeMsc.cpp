@@ -12,8 +12,12 @@ const char* cmake::cmakeTypeCaption(vcx::ConfigurationType type)
       return "STATIC_LIB";
    case vcx::ConfigurationType::DynamicLibrary:
       return "SHARED_LIB";
+   case vcx::ConfigurationType::Utility:
+      return "UTILITY";
+   case vcx::ConfigurationType::Makefile:
+      return "MAKEFILE";
    }
-   
+
    throw std::logic_error("Unhandled config type! (cmake::cmakeTypeCaption)");
 }
 
@@ -24,9 +28,9 @@ std::string cmake::cmakeStartType(const std::string& name, vcx::ConfigurationTyp
       res = "ADD_EXECUTABLE(";
    else
       res = "ADD_LIBRARY(";
-      
+
    res += cmake::tokenize(name);
-   
+
    if(type == vcx::ConfigurationType::StaticLibrary)
       res += " STATIC";
    else if(type == vcx::ConfigurationType::DynamicLibrary)
@@ -38,7 +42,7 @@ std::string cmake::cmakeStartType(const std::string& name, vcx::ConfigurationTyp
 std::string cmake::tokenize(const std::string& name)
 {
    std::string res;
-   
+
    for(char c : name)
    {
       switch(c)
@@ -54,6 +58,6 @@ std::string cmake::tokenize(const std::string& name)
          break;
       }
    }
-   
+
    return res;
 }

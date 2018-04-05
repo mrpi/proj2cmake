@@ -21,7 +21,9 @@ enum class ConfigurationType
 {
    StaticLibrary,
    DynamicLibrary,
-   Application
+   Application,
+   Utility,
+   Makefile
 };
 
 struct ProjectInfo
@@ -29,12 +31,12 @@ struct ProjectInfo
    std::string guid;
    std::string name;
    fs::path projectFile;
-   
+
    bool operator<(const ProjectInfo& other) const
    {
       return guid < other.guid;
    }
-   
+
    bool operator==(const ProjectInfo& other) const
    {
       return guid == other.guid;
