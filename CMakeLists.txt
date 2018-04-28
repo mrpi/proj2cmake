@@ -14,6 +14,12 @@ endif()
 
 FIND_PACKAGE (Boost COMPONENTS system filesystem REQUIRED)
 
+if (Boost_FOUND)
+  include_directories(
+    ${Boost_INCLUDE_DIRS}
+    )
+endif()
+
 AUX_SOURCE_DIRECTORY(src/ vcparser_SRC)
 AUX_SOURCE_DIRECTORY(src/vcx vcparser_SRC)
 AUX_SOURCE_DIRECTORY(src/cmake vcparser_SRC)
