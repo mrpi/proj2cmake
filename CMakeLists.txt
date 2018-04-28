@@ -16,7 +16,6 @@ FIND_PACKAGE (Boost COMPONENTS system filesystem REQUIRED)
 
 if (Boost_FOUND)
   include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${Boost_INCLUDE_DIRS}
     )
 endif()
