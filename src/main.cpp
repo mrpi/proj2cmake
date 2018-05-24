@@ -1,5 +1,5 @@
 #include "vcx/VCXParser.hpp"
-
+#include "vcx/VCXStructs.hpp"
 #include "cmake/CMakeListsWriter.hpp"
 #include "cmake/CMakeConfigTemplateWriter.hpp"
 #include "cmake/CMakeMsc.hpp"
@@ -24,12 +24,13 @@ void writeProject(std::ofstream& os, const vcx::Solution& solution, const Projec
 {
    os << "PROJECT(" << solution.name << ")" << std::endl;
    os << std::endl;
-
+   os << "set(CMAKE_INCLUDE_CURRENT_DIR ON)" << std::endl;
+   os << std::endl;
    fs::path confFile = "cmake_conf";
    confFile /= (solution.name + ".cmake");
 
    //os << "IF(EXISTS \"${" << solution.name << "_SOURCE_DIR}/cmake_conf/" << solution.name << ".cmake\")" << std::endl;
-   os << "INCLUDE(\"${" << solution.name << "_SOURCE_DIR}/" + confFile.string() + "\")" << std::endl;
+   os << "INCLUDE(\"${" << solution.name << "_SOURCE_DIR}/cmake_conf/" << solution.name << ".cmake\")" << std::endl;
    //os << "ENDIF()" << std::endl;
    os << std::endl;
 
@@ -74,7 +75,16 @@ int main(int argc, char** argv)
    }
 
    vcx::SolutionParser parser(solutionFile);
-   auto solution = parser();
+
+   vcx::Solution solution;
+   try {
+	   solution = parser();
+   }
+   catch (std::runtime_error e) {
+	   std::cerr << e.what() << std::endl;
+	   return 1;
+   }
+   
 
    ProjectsPaths dirToProj;
 
@@ -88,6 +98,7 @@ int main(int argc, char** argv)
 
       auto cmakeSrcFile = solution.basePath / pInfo.projectFile;
       cmakeSrcFile.replace_extension(".cmake");
+
       cmake::ListsWriter writer(p);
 
       std::ofstream os(cmakeSrcFile.native());
@@ -122,6 +133,7 @@ int main(int argc, char** argv)
 
          auto cmakeSrcFile = solution.basePath / pInfo.projectFile;
          cmakeSrcFile.replace_extension(".cmake");
+         std::cout << "Generating cmake for " << cmakeSrcFile.string() << std::endl;
 
          os << "INCLUDE(\"" + cmakeSrcFile.filename().string() + "\")" << std::endl;
          os << std::endl;
@@ -144,5 +156,6 @@ int main(int argc, char** argv)
       writeProject(os, solution, dirToProj);
    }
 
+   std::cout << dirToProj.size() << " projects have been converted" << std::endl;
    return 0;
 }

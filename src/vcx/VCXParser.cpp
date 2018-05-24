@@ -1,6 +1,6 @@
 #include "VCXParser.hpp"
 #include <iostream>
-
+#include <cerrno>
 using namespace proj2cmake::vcx;
 
 namespace
@@ -44,8 +44,15 @@ Solution SolutionParser::operator()()
    res.name = mSlnFile.stem().string();
 
    auto infos = parseSolution(mSlnFile);
-   for(auto&& projInfo : infos)
-      res.projects[projInfo] = parseProject(projInfo);
+   for(auto&& projInfo : infos) {
+	   try {
+		   res.projects[projInfo] = parseProject(projInfo);
+	   }
+	   catch (std::runtime_error e) {
+		   std::cerr << e.what() << std::endl;
+	   }
+   }
+
 
    for(auto&& proj : res.projects)
    {
@@ -74,7 +81,7 @@ Project SolutionParser::parseProject(const ProjectInfo& projInfo)
    std::cout << "Parsing file: " << projFilePath << std::endl;
    if(fs::exists(projFilePath) == false)
       throw std::runtime_error("Project file '"+ projFilePath.string() + "' not found!");
-   boost::property_tree::xml_parser::read_xml(projFilePath.native(), pt);
+   boost::property_tree::xml_parser::read_xml(projFilePath.string(), pt, 0, std::locale());
 
    std::string type;
 
@@ -114,16 +121,16 @@ Project SolutionParser::parseProject(const ProjectInfo& projInfo)
       }
    }
 
-   if(type == "Application")
-      res.type = ConfigurationType::Application;
-   else if(type == "DynamicLibrary")
-      res.type = ConfigurationType::DynamicLibrary;
-   else if(type == "StaticLibrary")
-      res.type = ConfigurationType::StaticLibrary;
-   else if(type == "Utility")
-      res.type = ConfigurationType::Utility;
-   else if(type == "Makefile")
-      res.type = ConfigurationType::Makefile;
+   if (type == "Application")
+	   res.type = ConfigurationType::Application;
+   else if (type == "DynamicLibrary")
+	   res.type = ConfigurationType::DynamicLibrary;
+   else if (type == "StaticLibrary")
+	   res.type = ConfigurationType::StaticLibrary;
+   else if (type == "Utility")
+	   res.type = ConfigurationType::Utility;
+   else if (type == "Makefile")
+	   res.type = ConfigurationType::Makefile;
    else
       throw std::runtime_error("Project '" + projInfo.name + "' has an invalid ConfigurationType ('" + type + "')");
 
@@ -179,6 +186,8 @@ std::vector<ProjectInfo> SolutionParser::parseSolution(std::istream& is)
 
 std::vector<ProjectInfo> SolutionParser::parseSolution(const fs::path& solutionFile)
 {
-   std::fstream is(solutionFile.native());
+   std::fstream is(solutionFile.native(), std::fstream::in);
+   if (!is.is_open())
+	   throw std::runtime_error("Error opening file: " + std::string(strerror(errno)));
    return parseSolution(is);
 }
