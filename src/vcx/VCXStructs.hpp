@@ -4,7 +4,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
-
+#include <memory>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -31,6 +31,9 @@ struct ProjectInfo
    std::string guid;
    std::string name;
    fs::path projectFile;
+   ProjectInfo() = default;
+
+   ProjectInfo(const ProjectInfo&) = default;
 
    bool operator<(const ProjectInfo& other) const
    {
@@ -45,14 +48,26 @@ struct ProjectInfo
 
 struct Project
 {
+    Project() {
+        bMultiThreaded = false;
+		bMultiThreadedDebug = false;
+        spCompileFiles = std::make_shared<std::vector<fs::path>>();
+		spIncludeFiles = std::make_shared<std::vector<fs::path>>();
+        spAdditionalIncludeDirs = std::make_shared<std::vector<fs::path>>();
+        spAdditionalLinkDirs = std::make_shared<std::vector<fs::path>>();
+		spReferencedProjects = std::make_shared<std::vector<ProjectInfo>>();
+   }
    ConfigurationType type;
 
-   std::vector<fs::path> compileFiles;
-   std::vector<fs::path> includeFiles;
-   std::vector<ProjectInfo> referencedProjects;
+   bool bMultiThreaded;
+   bool bMultiThreadedDebug;
+   std::shared_ptr<std::vector<fs::path>> spCompileFiles;
+   std::shared_ptr<std::vector<fs::path>> spIncludeFiles;
+   std::shared_ptr<std::vector<fs::path>> spAdditionalIncludeDirs;
+   std::shared_ptr<std::vector<fs::path>> spAdditionalLinkDirs;
+   std::shared_ptr<std::vector<ProjectInfo>> spReferencedProjects;
 };
 
-using ProjectPair = std::pair<const vcx::ProjectInfo, vcx::Project>;
 
 struct Solution
 {
@@ -61,5 +76,7 @@ struct Solution
   std::map<ProjectInfo, Project> projects;
 };
 
-}
+using ProjectPair = std::pair<const ProjectInfo, Project>;
+using ProjectsPaths = std::map<fs::path, std::vector<std::shared_ptr<ProjectPair>>>;
+};
 }

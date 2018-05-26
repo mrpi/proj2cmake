@@ -5,7 +5,7 @@ using namespace proj2cmake::vcx;
 
 namespace
 {
-inline std::string pathToNative(std::string&& in)
+std::string pathToNative(std::string& in)
 {
    for(auto& c : in)
       if(c == '\\')
@@ -13,13 +13,13 @@ inline std::string pathToNative(std::string&& in)
    return in;
 }
 
-inline void toUpper(char& c)
+void toUpper(char& c)
 {
    if(c >= 'a' && c <= 'z')
       c += 'A' - 'a';
 }
 
-inline std::string toUpper(std::string&& in)
+std::string toUpper(std::string& in)
 {
    for(auto& c : in)
       toUpper(c);
@@ -33,7 +33,7 @@ fs::path SolutionParser::basePath() const
 }
 
 SolutionParser::SolutionParser(fs::path slnFile)
-   : mSlnFile(std::move(slnFile))
+   : mSlnFile(slnFile)
 {}
 
 Solution SolutionParser::operator()()
@@ -45,22 +45,22 @@ Solution SolutionParser::operator()()
 
    auto infos = parseSolution(mSlnFile);
    for(auto&& projInfo : infos) {
-	   try {
-		   res.projects[projInfo] = parseProject(projInfo);
-	   }
-	   catch (std::runtime_error e) {
-		   std::cerr << e.what() << std::endl;
-	   }
+       try {
+           res.projects[projInfo] = parseProject(projInfo);
+       }
+       catch (std::exception e) {
+           std::cerr << "ERROR: " << e.what() << std::endl;
+       }
    }
 
 
    for(auto&& proj : res.projects)
    {
-      for(auto&& refProj : proj.second.referencedProjects)
+      for(auto&& refProj : *proj.second.spReferencedProjects)
       {
          auto itr = res.projects.find(refProj);
          if(itr == res.projects.end())
-            std::cerr << "Warning: Project " << refProj.guid << " is referenced but can not be found" << std::endl;
+            std::cerr << "WARNING: Project " << refProj.guid << " is referenced but can not be found" << std::endl;
          else
             refProj.name = itr->first.name;
       }
@@ -88,57 +88,119 @@ Project SolutionParser::parseProject(const ProjectInfo& projInfo)
    auto project = pt.get_child("Project");
    for(auto&& pp : project)
    {
+
       if(type.empty() && pp.first == "PropertyGroup")
       {
          type = pp.second.get<std::string>("ConfigurationType", "");
          continue;
       }
-      else if(pp.first != "ItemGroup")
-         continue;
 
-      for(auto&& ip : pp.second)
+      if (pp.first == "ItemDefinitionGroup") 
       {
-         if(ip.first == "ClCompile")
-         {
-            auto f = ip.second.get<std::string>("<xmlattr>.Include");
-            f = pathToNative(std::move(f));
-            res.compileFiles.push_back(f);
-         }
-         else if(ip.first == "ClInclude")
-         {
-            auto f = ip.second.get<std::string>("<xmlattr>.Include");
-            f = pathToNative(std::move(f));
-            res.includeFiles.push_back(f);
-         }
-         else if(ip.first == "ProjectReference")
-         {
-            ProjectInfo pInfo;
-            auto f = ip.second.get<std::string>("<xmlattr>.Include");
-            pInfo.projectFile = pathToNative(std::move(f));
-            pInfo.guid = toUpper(ip.second.get<std::string>("Project"));
-            res.referencedProjects.push_back(pInfo);
-         }
+          for (auto&& ip : pp.second)
+          {
+              if (ip.first == "ClCompile")
+              {
+                  for (auto&& jp : ip.second)
+                  {
+                      if (jp.first == "AdditionalIncludeDirectories")
+                      {
+                          auto sAddtionalIncludeDirs = jp.second.data();
+                          auto i = 0;
+                          auto pos = sAddtionalIncludeDirs.find(';');
+                          while (pos != std::string::npos)
+                          {
+                              auto dir = sAddtionalIncludeDirs.substr(i, pos - i);
+                              i = ++pos;
+                              pos = sAddtionalIncludeDirs.find(';', pos);
+                              dir = pathToNative(dir);
+                              if (std::find(res.spAdditionalIncludeDirs->begin(),
+                                  res.spAdditionalIncludeDirs->end(), dir) ==
+                                  res.spAdditionalIncludeDirs->end())
+                                  res.spAdditionalIncludeDirs->push_back(dir);
+                          }
+                      }
+                      else if (jp.first == "RuntimeLibrary")
+                      {
+                          auto sRuntimeLibrary = jp.second.data();
+                          if (sRuntimeLibrary == "MultiThreaded")
+                              res.bMultiThreaded = true;
+                          else if (sRuntimeLibrary == "MultiThreadedDebug")
+                              res.bMultiThreadedDebug = true;
+                      }
+                  }
+              }
+              else if (ip.first == "Link")
+              {
+                  for (auto&& jp : ip.second)
+                  {
+                      if (jp.first == "AdditionalLibraryDirectories")
+                      {
+                          auto sAddtionalLinkDirs = jp.second.data();
+                          auto i = 0;
+                          auto pos = sAddtionalLinkDirs.find(';');
+                          while (pos != std::string::npos)
+                          {
+                              auto dir = sAddtionalLinkDirs.substr(i, pos - i);
+                              i = ++pos;
+                              pos = sAddtionalLinkDirs.find(';', pos);
+                              dir = pathToNative(dir);
+                              if (std::find(res.spAdditionalLinkDirs->begin(),
+                                  res.spAdditionalLinkDirs->end(), dir) ==
+                                  res.spAdditionalLinkDirs->end())
+                                  res.spAdditionalLinkDirs->push_back(dir);
+                          }
+                      }
+                      
+                  }
+              }
+          }
+      }
+
+      else if(pp.first == "ItemGroup")
+      {
+          for (auto&& ip : pp.second)
+          {
+              if (ip.first == "ClCompile")
+              {
+                  auto f = ip.second.get<std::string>("<xmlattr>.Include");
+                  res.spCompileFiles->push_back(pathToNative(f));
+              }
+              else if (ip.first == "ClInclude")
+              {
+                  auto f = ip.second.get<std::string>("<xmlattr>.Include");
+                  res.spIncludeFiles->push_back(pathToNative(f));
+              }
+              else if (ip.first == "ProjectReference")
+              {
+                  ProjectInfo pInfo;
+                  auto f = ip.second.get<std::string>("<xmlattr>.Include");
+                  pInfo.projectFile = pathToNative(f);
+                  pInfo.guid = toUpper(ip.second.get<std::string>("Project"));
+                  res.spReferencedProjects->push_back(pInfo);
+              }
+          }
       }
    }
 
    if (type == "Application")
-	   res.type = ConfigurationType::Application;
+       res.type = ConfigurationType::Application;
    else if (type == "DynamicLibrary")
-	   res.type = ConfigurationType::DynamicLibrary;
+       res.type = ConfigurationType::DynamicLibrary;
    else if (type == "StaticLibrary")
-	   res.type = ConfigurationType::StaticLibrary;
+       res.type = ConfigurationType::StaticLibrary;
    else if (type == "Utility")
-	   res.type = ConfigurationType::Utility;
+       res.type = ConfigurationType::Utility;
    else if (type == "Makefile")
-	   res.type = ConfigurationType::Makefile;
+       res.type = ConfigurationType::Makefile;
    else
       throw std::runtime_error("Project '" + projInfo.name + "' has an invalid ConfigurationType ('" + type + "')");
 
-   std::cout << "  Type: " << type << ", CompileFiles: " << res.compileFiles.size() << ", IncludeFiles: " << res.includeFiles.size() << ", ProjectReferences: " << res.referencedProjects.size() << std::endl;
+   std::cout << "  Type: " << type << ", CompileFiles: " << res.spCompileFiles->size() << ", IncludeFiles: " << res.spIncludeFiles->size() << ", ProjectReferences: " << res.spReferencedProjects->size() << std::endl;
 
-   std::sort(begin(res.compileFiles), end(res.compileFiles));
-   std::sort(begin(res.includeFiles), end(res.includeFiles));
-   std::sort(begin(res.referencedProjects), end(res.referencedProjects));
+   std::sort(begin(*res.spCompileFiles), end(*res.spCompileFiles));
+   std::sort(begin(*res.spIncludeFiles), end(*res.spIncludeFiles));
+   std::sort(begin(*res.spReferencedProjects), end(*res.spReferencedProjects));
 
    return res;
 }
@@ -188,6 +250,6 @@ std::vector<ProjectInfo> SolutionParser::parseSolution(const fs::path& solutionF
 {
    std::fstream is(solutionFile.native(), std::fstream::in);
    if (!is.is_open())
-	   throw std::runtime_error("Error opening file: " + std::string(strerror(errno)));
+       throw std::runtime_error("Error opening file: " + std::string(strerror(errno)));
    return parseSolution(is);
 }
