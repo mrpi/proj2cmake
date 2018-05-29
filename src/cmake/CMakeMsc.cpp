@@ -168,17 +168,24 @@ void cmake::writeSolution(const vcx::Solution& solution)
                 os << "set(CMAKE_CXX_FLAGS_DEBUG \"/MTd\")" << std::endl;
             os << std::endl;
 
-            os << "TARGET_INCLUDE_DIRECTORIES(" << cmake::tokenize(pInfo.name) << std::endl;
-            os << "            ${" << cmake::tokenize(pInfo.name) << "_ADDITIONAL_INCLUDE_DIRS})" << std::endl;
-            os << std::endl;
-
-            os << "LINK_DIRECTORIES(" << cmake::tokenize(pInfo.name) << std::endl;
-            os << "            ${" << cmake::tokenize(pInfo.name) << "_ADDITIONAL_LINK_DIRS})" << std::endl;
-            os << std::endl;
-
             os << cmake::cmakeStartType(pInfo.name, project.type) << std::endl;
             os << "            ${" << cmake::tokenize(pInfo.name) << "_SRC})" << std::endl;
             os << std::endl;
+
+			if (project.spAdditionalIncludeDirs->size() > 0)
+			{
+				os << "TARGET_INCLUDE_DIRECTORIES(" << cmake::tokenize(pInfo.name) << " PUBLIC " << std::endl;
+				os << "            ${" << cmake::tokenize(pInfo.name) << "_ADDITIONAL_INCLUDE_DIRS})" << std::endl;
+				os << std::endl;
+			}
+
+			if (project.spAdditionalLinkDirs->size() > 0)
+			{
+				os << "LINK_DIRECTORIES(" << cmake::tokenize(pInfo.name) << std::endl;
+				os << "            ${" << cmake::tokenize(pInfo.name) << "_ADDITIONAL_LINK_DIRS})" << std::endl;
+				os << std::endl;
+			}
+
             os << "TARGET_LINK_LIBRARIES(" << cmake::tokenize(pInfo.name) << std::endl;
             os << "            ${" << cmake::tokenize(pInfo.name) << "_DEPS}" << std::endl;
             os << "            ${" << cmake::tokenize(pInfo.name) << "_ADDITIONAL_DEPS}" << std::endl;
