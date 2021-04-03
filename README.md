@@ -9,6 +9,24 @@ Only the first onces will be overwritten on further runs of proj2cmake. So it is
 
 This project is currently in an early state and may not work correctly for your Visual Studio projects.
 
+## Build
+```bash
+git clone https://github.com/mrpi/proj2cmake.git
+cd proj2cmake
+# use cmake build
+mkdir build && cd build && cmake .. && make
+make install
+# use Ninja build
+mkdir build && cd build && cmake -G Ninja .. && ninja
+ninja install
+```
+
+## Install
+Arch Linux：
+```bash
+yay -S proj2cmake-git
+```
+
 ## Usage
 Call proj2cmake with your solution file as the argument:
 ```
